@@ -1,0 +1,16 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+
+option go_package = "github.com/Agile-Ultimate-English-team/foreign-at-home/proto";
+
+package Main;
+
+service Authenticator {
+  // Exchanges AccessCode from Implicit OAuth2 flow for a session token in Fathome
+	rpc AuthenticateByOAuth2Code(OAuth2CodeAuthenticationRequest) returns (google.protobuf.Empty) {}
+}
+
+message OAuth2CodeAuthenticationRequest {
+	string provider = 1;
+	string code = 2;
+}

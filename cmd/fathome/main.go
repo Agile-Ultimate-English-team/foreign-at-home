@@ -1,7 +1,7 @@
 package main
 
 import (
-	"context"
+	"net"
 	"os"
 	"os/signal"
 	"sync"
@@ -16,10 +16,11 @@ func main() {
 	log := logger.Sugar()
 	log.Info("Initialized sugared logger.")
 
-	// App context
-	appCtx, stopApp := context.WithCancel(context.Background())
-	_ = appCtx
-	log.Info("Successfully started the application, though it doesn't do anything for now. Press Ctrl+C to exit")
+	lis, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		log.Fatalf("Can't listen on port %d: %+v", 8080, err)
+	}
+	grpcSrv := newGrpcServer(log)
 
 	// Graceful Shutdown
 	wg := &sync.WaitGroup{}
@@ -29,11 +30,22 @@ func main() {
 	go func() {
 		select {
 		case <-sigCh:
-			stopApp()
+			grpcSrv.GracefulStop()
 			log.Info("Shutting down...")
 		}
 		wg.Done()
 	}()
+
+	//Grpc server
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if err := grpcSrv.Serve(lis); err != nil {
+			log.Fatalf("Server has suddenly stopped: %+v", err)
+		}
+	}()
+	log.Infof("Server is listening for GRPC connections on %s", lis.Addr())
+
 	wg.Wait()
 	log.Info("Goodbye!")
 }
